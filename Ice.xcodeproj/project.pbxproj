@@ -191,8 +191,8 @@
 		1736F7762ADBBEF10073428E /* CustomGradientPicker */ = {
 			isa = PBXGroup;
 			children = (
-				1736F77F2ADBC02B0073428E /* CustomGradient.swift */,
 				170CF88F2B101D980073F982 /* ColorStop.swift */,
+				1736F77F2ADBC02B0073428E /* CustomGradient.swift */,
 				1736F77B2ADBBF340073428E /* CustomGradientPicker.swift */,
 			);
 			path = CustomGradientPicker;
@@ -348,11 +348,11 @@
 		7133ED662A858230000A7E1B /* Settings */ = {
 			isa = PBXGroup;
 			children = (
+				7133ED692A85870E000A7E1B /* SettingsView.swift */,
+				71D36C4E2A88FE4900D89CD5 /* SettingsWindow.swift */,
 				7162406A2A9F1565003EC671 /* Helpers */,
 				7150A7AB2AA4262F0045EA68 /* Hotkeys */,
 				7162406B2A9F1607003EC671 /* SettingsPanes */,
-				7133ED692A85870E000A7E1B /* SettingsView.swift */,
-				71D36C4E2A88FE4900D89CD5 /* SettingsWindow.swift */,
 			);
 			path = Settings;
 			sourceTree = "<group>";
