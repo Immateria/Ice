@@ -41,6 +41,7 @@
 		179F3C432ACE746700A76EE8 /* RemoveSidebarToggle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 179F3C422ACE746700A76EE8 /* RemoveSidebarToggle.swift */; };
 		17B380F32ADCBC8A0002C9C3 /* OnKeyDown.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17B380F22ADCBC8A0002C9C3 /* OnKeyDown.swift */; };
 		17B380F52ADCBE090002C9C3 /* LocalEventMonitorModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17B380F42ADCBE090002C9C3 /* LocalEventMonitorModifier.swift */; };
+		17B485012B3CD3D7006173A5 /* LayoutBarCore in Resources */ = {isa = PBXBuildFile; fileRef = 17B485002B3CD3D7006173A5 /* LayoutBarCore */; };
 		17B7F32B2B264C1800CDCF49 /* MenuBarAppearanceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17B7F32A2B264C1800CDCF49 /* MenuBarAppearanceManager.swift */; };
 		17DFF4AC2AD5FB3300B5177A /* MenuBarSettingsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17DFF4AB2AD5FB3300B5177A /* MenuBarSettingsPane.swift */; };
 		17DFF4C02AD8DBC500B5177A /* CodableColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17DFF4BF2AD8DBC500B5177A /* CodableColor.swift */; };
@@ -114,6 +115,7 @@
 		179F3C422ACE746700A76EE8 /* RemoveSidebarToggle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoveSidebarToggle.swift; sourceTree = "<group>"; };
 		17B380F22ADCBC8A0002C9C3 /* OnKeyDown.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnKeyDown.swift; sourceTree = "<group>"; };
 		17B380F42ADCBE090002C9C3 /* LocalEventMonitorModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalEventMonitorModifier.swift; sourceTree = "<group>"; };
+		17B485002B3CD3D7006173A5 /* LayoutBarCore */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = LayoutBarCore; sourceTree = "<group>"; };
 		17B7F32A2B264C1800CDCF49 /* MenuBarAppearanceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarAppearanceManager.swift; sourceTree = "<group>"; };
 		17DFF4AB2AD5FB3300B5177A /* MenuBarSettingsPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarSettingsPane.swift; sourceTree = "<group>"; };
 		17DFF4BF2AD8DBC500B5177A /* CodableColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodableColor.swift; sourceTree = "<group>"; };
@@ -303,9 +305,10 @@
 			path = Styles;
 			sourceTree = "<group>";
 		};
-		17B484FC2B3CC961006173A5 /* Packages */ = {
+		17B484FF2B3CD3D7006173A5 /* Packages */ = {
 			isa = PBXGroup;
 			children = (
+				17B485002B3CD3D7006173A5 /* LayoutBarCore */,
 			);
 			path = Packages;
 			sourceTree = "<group>";
@@ -399,7 +402,7 @@
 		716683212A767E6A006ABF84 = {
 			isa = PBXGroup;
 			children = (
-				17B484FC2B3CC961006173A5 /* Packages */,
+				17B484FF2B3CD3D7006173A5 /* Packages */,
 				7166832C2A767E6A006ABF84 /* Ice */,
 				7166832B2A767E6A006ABF84 /* Products */,
 			);
@@ -610,6 +613,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				1726A3F92B3378B8008B09DD /* Acknowledgements.rtf in Resources */,
+				17B485012B3CD3D7006173A5 /* LayoutBarCore in Resources */,
 				716683322A767E6B006ABF84 /* Assets.xcassets in Resources */,
 				1787C4362B17A9EB002F50DF /* Acknowledgements.pdf in Resources */,
 			);
