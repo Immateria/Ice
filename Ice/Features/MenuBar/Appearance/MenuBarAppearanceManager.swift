@@ -48,6 +48,9 @@ final class MenuBarAppearanceManager: ObservableObject {
     /// of the menu bar.
     @Published var desktopWallpaper: CGImage?
 
+    /// The average color of the menu bar.
+    @Published var averageColor: CGColor?
+
     /// A Boolean value that indicates whether the screen
     /// is currently locked.
     @Published private(set) var screenIsLocked = false
@@ -261,6 +264,13 @@ final class MenuBarAppearanceManager: ObservableObject {
             }
             .store(in: &c)
 
+        $desktopWallpaper
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.updateAverageColor()
+            }
+            .store(in: &c)
+
         cancellables = c
     }
 
@@ -326,6 +336,20 @@ final class MenuBarAppearanceManager: ObservableObject {
             } catch {
                 Logger.appearanceManager.error("Error updating desktop wallpaper: \(error)")
             }
+        }
+    }
+
+    private func updateAverageColor() {
+        guard let color = desktopWallpaper?.averageColor(
+            accuracy: .low,
+            algorithm: .simple,
+            options: .ignoreAlpha
+        ) else {
+            return
+        }
+
+        if averageColor != color {
+            averageColor = color
         }
     }
 }

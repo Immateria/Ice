@@ -19,8 +19,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         if !AppState.shared.isPreview {
-            // if we have the required permissions, stop all checks
-            // and set up the menu bar
+            // if we have the required permissions, stop all
+            // checks and perform initial setup
             if AppState.shared.permissionsManager.hasPermission {
                 AppState.shared.permissionsManager.stopAll()
                 AppState.shared.menuBar.performSetup()

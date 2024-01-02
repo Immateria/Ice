@@ -64,6 +64,20 @@ final class MenuBarSection: ObservableObject {
         listener != nil
     }
 
+    /// The max X coordinate of the section on screen.
+    var maxX: CGFloat {
+        switch name {
+        case .visible:
+            if let screen = controlItem.screen {
+                screen.frame.maxX
+            } else {
+                0
+            }
+        case .hidden, .alwaysHidden:
+            controlItem.windowFrame?.minX ?? 0
+        }
+    }
+
     /// Creates a menu bar section with the given name, control item,
     /// hotkey, and unique identifier.
     init(name: Name, controlItem: ControlItem, hotkey: Hotkey? = nil) {
