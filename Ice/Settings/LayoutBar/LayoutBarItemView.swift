@@ -1,5 +1,5 @@
 //
-//  LayoutBarItem.swift
+//  LayoutBarItemView.swift
 //  Ice
 //
 
@@ -154,7 +154,7 @@ extension LayoutBarItemView: NSDraggingSource {
         // this method being called; thus, `isDraggingPlaceholder` only
         // needs to be updated here; if we ever decide we want animation,
         // it may also need to be updated inside `performDragOperation(_:)`
-        // on `MenuBarLayoutCocoaView`
+        // on `LayoutBarCocoaView`
         isDraggingPlaceholder = false
         // if the drop occurs outside of a container, reinsert the view
         // into its original container at its original index
@@ -168,7 +168,7 @@ extension LayoutBarItemView: NSDraggingSource {
     }
 }
 
-// MARK: Layout Item Pasteboard Type
+// MARK: Layout Bar Item Pasteboard Type
 extension NSPasteboard.PasteboardType {
     static let layoutBarItem = Self("\(Bundle.main.bundleIdentifier!).layout-bar-item")
 }
