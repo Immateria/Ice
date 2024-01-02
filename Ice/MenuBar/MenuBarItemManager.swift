@@ -34,15 +34,15 @@ class MenuBarItemManager: ObservableObject {
     /// The items in the "Always Hidden" section in the menu bar.
     @Published private(set) var alwaysHiddenItems = [MenuBarItem]()
 
-    private weak var appState: AppState?
+    private(set) weak var menuBarManager: MenuBarManager?
 
     private var timer: AnyCancellable?
     private var previousWindowCount = 0
 
     private var cancellables = Set<AnyCancellable>()
 
-    init(appState: AppState) {
-        self.appState = appState
+    init(menuBarManager: MenuBarManager) {
+        self.menuBarManager = menuBarManager
         configureCancellables()
     }
 
@@ -53,9 +53,9 @@ class MenuBarItemManager: ObservableObject {
             .sink { [weak self] items in
                 guard
                     let self,
-                    let menuBar = appState?.menuBar,
-                    let hiddenSection = menuBar.section(withName: .hidden),
-                    let alwaysHiddenSection = menuBar.section(withName: .alwaysHidden)
+                    let menuBarManager,
+                    let hiddenSection = menuBarManager.section(withName: .hidden),
+                    let alwaysHiddenSection = menuBarManager.section(withName: .alwaysHidden)
                 else {
                     return
                 }
@@ -141,8 +141,8 @@ class MenuBarItemManager: ObservableObject {
     /// the menu bar.
     private func getCurrentHidingStates() -> [MenuBarSection.Name: ControlItem.HidingState] {
         var states = [MenuBarSection.Name: ControlItem.HidingState]()
-        if let appState {
-            for section in appState.menuBar.sections {
+        if let menuBarManager {
+            for section in menuBarManager.sections {
                 states[section.name] = section.controlItem.state
             }
         }
@@ -153,7 +153,7 @@ class MenuBarItemManager: ObservableObject {
     /// items in the menu bar has changed.
     @MainActor
     private func updateItems() async throws {
-        guard let appState else {
+        guard let menuBarManager else {
             return
         }
 
@@ -162,7 +162,7 @@ class MenuBarItemManager: ObservableObject {
 
         // can't capture off-screen items; iterate through
         // the sections and temporarily show all items
-        for section in appState.menuBar.sections {
+        for section in menuBarManager.sections {
             section.controlItem.state = .showItems
         }
 
@@ -207,7 +207,7 @@ class MenuBarItemManager: ObservableObject {
 
         // restore the hiding states of all sections to
         // their original values
-        for section in appState.menuBar.sections {
+        for section in menuBarManager.sections {
             if let state = currentStates[section.name] {
                 section.controlItem.state = state
             }

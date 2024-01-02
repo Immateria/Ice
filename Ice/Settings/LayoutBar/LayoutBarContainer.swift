@@ -47,8 +47,8 @@ class LayoutBarContainer: NSView {
         return constraint
     }()
 
-    /// The shared app state instance.
-    let appState: AppState
+    /// The shared menu bar manager instance.
+    let menuBarManager: MenuBarManager
 
     /// The section whose items are represented.
     let section: MenuBarSection
@@ -79,15 +79,15 @@ class LayoutBarContainer: NSView {
 
     private var cancellables = Set<AnyCancellable>()
 
-    /// Creates a container view with the given app state, section,
-    /// and spacing.
+    /// Creates a container view with the given menu bar manager,
+    /// section, and spacing.
     ///
     /// - Parameters:
-    ///   - appState: The shared app state instance.
+    ///   - menuBarManager: The shared menu bar manager instance.
     ///   - section: The section whose items are represented.
     ///   - spacing: The amount of space between each arranged view.
-    init(appState: AppState, section: MenuBarSection, spacing: CGFloat) {
-        self.appState = appState
+    init(menuBarManager: MenuBarManager, section: MenuBarSection, spacing: CGFloat) {
+        self.menuBarManager = menuBarManager
         self.section = section
         self.spacing = spacing
         super.init(frame: .zero)
@@ -106,7 +106,7 @@ class LayoutBarContainer: NSView {
 
         switch section.name {
         case .visible:
-            appState.itemManager.$visibleItems
+            menuBarManager.itemManager.$visibleItems
                 .sink { [weak self] items in
                     self?.arrangedViews = items.map { item in
                         LayoutBarItemView(
@@ -120,7 +120,7 @@ class LayoutBarContainer: NSView {
                 }
                 .store(in: &c)
         case .hidden:
-            appState.itemManager.$hiddenItems
+            menuBarManager.itemManager.$hiddenItems
                 .sink { [weak self] items in
                     self?.arrangedViews = items.map { item in
                         LayoutBarItemView(
@@ -134,7 +134,7 @@ class LayoutBarContainer: NSView {
                 }
                 .store(in: &c)
         case .alwaysHidden:
-            appState.itemManager.$alwaysHiddenItems
+            menuBarManager.itemManager.$alwaysHiddenItems
                 .sink { [weak self] items in
                     self?.arrangedViews = items.map { item in
                         LayoutBarItemView(

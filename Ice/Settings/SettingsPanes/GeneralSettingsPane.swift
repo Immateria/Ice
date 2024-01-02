@@ -12,8 +12,8 @@ struct GeneralSettingsPane: View {
     @State private var isPresentingError = false
     @State private var presentedError: LocalizedErrorBox?
 
-    private var menuBar: MenuBar {
-        appState.menuBar
+    private var menuBarManager: MenuBarManager {
+        appState.menuBarManager
     }
 
     var body: some View {
@@ -62,7 +62,7 @@ struct GeneralSettingsPane: View {
 
     @ViewBuilder
     private var showOnHover: some View {
-        Toggle(isOn: menuBar.bindings.showOnHover) {
+        Toggle(isOn: menuBarManager.bindings.showOnHover) {
             Text("Show on hover")
             Text("Hover over an empty area in the menu bar to show hidden items")
         }
@@ -70,16 +70,16 @@ struct GeneralSettingsPane: View {
 
     @ViewBuilder
     private var alwaysHiddenOptions: some View {
-        if let section = menuBar.section(withName: .alwaysHidden) {
+        if let section = menuBarManager.section(withName: .alwaysHidden) {
             Toggle(isOn: section.bindings.isEnabled) {
                 Text("Enable \"\(section.name.rawValue)\" section")
                 if section.isEnabled {
-                    Text("\(menuBar.secondaryActionModifier.label) (\(menuBar.secondaryActionModifier.stringValue)) + click either of \(Constants.appName)'s menu bar items to temporarily show this section")
+                    Text("\(menuBarManager.secondaryActionModifier.label) (\(menuBarManager.secondaryActionModifier.stringValue)) + click either of \(Constants.appName)'s menu bar items to temporarily show this section")
                 }
             }
 
             if section.isEnabled {
-                Picker("Modifier", selection: menuBar.bindings.secondaryActionModifier) {
+                Picker("Modifier", selection: menuBarManager.bindings.secondaryActionModifier) {
                     ForEach(ControlItem.secondaryActionModifiers, id: \.self) { modifier in
                         Text("\(modifier.stringValue) \(modifier.label)").tag(modifier)
                     }
@@ -93,7 +93,7 @@ struct GeneralSettingsPane: View {
         Label {
             Text(imageSet.name.rawValue)
         } icon: {
-            if let nsImage = imageSet.hidden.nsImage(for: menuBar) {
+            if let nsImage = imageSet.hidden.nsImage(for: menuBarManager) {
                 Image(nsImage: nsImage)
             }
         }
@@ -104,12 +104,12 @@ struct GeneralSettingsPane: View {
     private var iceIconOptions: some View {
         LabeledContent {
             Menu {
-                Picker("\(Constants.appName) icon", selection: menuBar.bindings.iceIcon) {
+                Picker("\(Constants.appName) icon", selection: menuBarManager.bindings.iceIcon) {
                     ForEach(ControlItemImageSet.userSelectableImageSets) { imageSet in
                         label(for: imageSet)
                     }
 
-                    if let lastCustomIceIcon = menuBar.lastCustomIceIcon {
+                    if let lastCustomIceIcon = menuBarManager.lastCustomIceIcon {
                         label(for: lastCustomIceIcon)
                     }
                 }
@@ -120,7 +120,7 @@ struct GeneralSettingsPane: View {
                     isImportingCustomIceIcon = true
                 }
             } label: {
-                label(for: menuBar.iceIcon)
+                label(for: menuBarManager.iceIcon)
             }
             .labelStyle(.titleAndIcon)
             .scaledToFit()
@@ -140,7 +140,7 @@ struct GeneralSettingsPane: View {
                         url.stopAccessingSecurityScopedResource()
                     }
                     let data = try Data(contentsOf: url)
-                    menuBar.iceIcon = ControlItemImageSet(
+                    menuBarManager.iceIcon = ControlItemImageSet(
                         name: .custom,
                         hidden: .data(data),
                         visible: .data(data)
@@ -152,8 +152,8 @@ struct GeneralSettingsPane: View {
             }
         }
 
-        if case .custom = menuBar.iceIcon.name {
-            Toggle(isOn: menuBar.bindings.customIceIconIsTemplate) {
+        if case .custom = menuBarManager.iceIcon.name {
+            Toggle(isOn: menuBarManager.bindings.customIceIconIsTemplate) {
                 Text("Use template image")
                 Text("Display the icon as a monochrome image matching the system appearance")
             }
@@ -171,14 +171,14 @@ struct GeneralSettingsPane: View {
 
     @ViewBuilder
     private var hiddenRecorder: some View {
-        if let section = menuBar.section(withName: .hidden) {
+        if let section = menuBarManager.section(withName: .hidden) {
             hotkeyRecorder(for: section)
         }
     }
 
     @ViewBuilder
     private var alwaysHiddenRecorder: some View {
-        if let section = menuBar.section(withName: .alwaysHidden) {
+        if let section = menuBarManager.section(withName: .alwaysHidden) {
             hotkeyRecorder(for: section)
         }
     }

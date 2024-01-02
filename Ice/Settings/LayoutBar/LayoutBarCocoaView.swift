@@ -30,16 +30,16 @@ class LayoutBarCocoaView: NSView {
         set { container.arrangedViews = newValue }
     }
 
-    /// Creates a layout bar view with the given app state, section,
-    /// and spacing.
+    /// Creates a layout bar view with the given menu bar manager,
+    /// section, and spacing.
     ///
     /// - Parameters:
-    ///   - appState: The shared app state instance.
+    ///   - menuBarManager: The shared menu bar manager instance.
     ///   - section: The section whose items are represented.
     ///   - spacing: The amount of space between each arranged view.
-    init(appState: AppState, section: MenuBarSection, spacing: CGFloat) {
+    init(menuBarManager: MenuBarManager, section: MenuBarSection, spacing: CGFloat) {
         self.container = LayoutBarContainer(
-            appState: appState,
+            menuBarManager: menuBarManager,
             section: section,
             spacing: spacing
         )
@@ -115,6 +115,6 @@ class LayoutBarCocoaView: NSView {
 
     func moveItemView(_ itemView: LayoutBarItemView) async throws {
         let position = container.bounds.maxX - itemView.frame.maxX
-        try await container.appState.itemManager.move(itemView.item, toXPosition: section.maxX - position)
+        try await container.menuBarManager.itemManager.move(itemView.item, toXPosition: section.maxX - position)
     }
 }

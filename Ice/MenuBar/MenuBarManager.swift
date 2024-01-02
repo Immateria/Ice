@@ -1,5 +1,5 @@
 //
-//  MenuBar.swift
+//  MenuBarManager.swift
 //  Ice
 //
 
@@ -9,7 +9,7 @@ import OSLog
 import SwiftUI
 
 /// Manager for the state of the menu bar.
-final class MenuBar: ObservableObject {
+final class MenuBarManager: ObservableObject {
     /// Set to `true` to tell the menu bar to save its sections.
     @Published var needsSave = false
 
@@ -45,13 +45,13 @@ final class MenuBar: ObservableObject {
     @Published private(set) var sections = [MenuBarSection]() {
         willSet {
             for section in sections {
-                section.menuBar = nil
+                section.menuBarManager = nil
             }
         }
         didSet {
             if validateSectionCountOrReinitialize() {
                 for section in sections {
-                    section.menuBar = self
+                    section.menuBarManager = self
                 }
             }
             configureCancellables()
@@ -67,7 +67,9 @@ final class MenuBar: ObservableObject {
     private let defaults: UserDefaults
 
     private(set) weak var appState: AppState?
-    private(set) lazy var appearanceManager = MenuBarAppearanceManager(menuBar: self)
+
+    private(set) lazy var appearanceManager = MenuBarAppearanceManager(menuBarManager: self)
+    private(set) lazy var itemManager = MenuBarItemManager(menuBarManager: self)
 
     private lazy var showOnHoverMonitor = UniversalEventMonitor(
         mask: [.mouseMoved, .leftMouseDown, .rightMouseDown, .otherMouseDown]
@@ -101,7 +103,7 @@ final class MenuBar: ObservableObject {
         case .mouseMoved:
             if hiddenSection.isHidden {
                 if mouseIsInMenuBar {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                         // make sure the mouse is still inside
                         if mouseIsInMenuBar {
                             hiddenSection.show()
@@ -110,7 +112,7 @@ final class MenuBar: ObservableObject {
                 }
             } else {
                 if NSEvent.mouseLocation.y < screen.visibleFrame.maxY {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                         // make sure the mouse is still outside
                         if NSEvent.mouseLocation.y < screen.visibleFrame.maxY {
                             hiddenSection.hide()
@@ -139,7 +141,7 @@ final class MenuBar: ObservableObject {
         return event
     }
 
-    /// Initializes a new menu bar instance.
+    /// Initializes a new menu bar manager instance.
     init(appState: AppState, defaults: UserDefaults) {
         self.appState = appState
         self.defaults = defaults
@@ -172,14 +174,14 @@ final class MenuBar: ObservableObject {
                 secondaryActionModifier = Hotkey.Modifiers(rawValue: modifierRawValue)
             }
         } catch {
-            Logger.menuBar.error("Error decoding value: \(error)")
+            Logger.menuBarManager.error("Error decoding value: \(error)")
         }
     }
 
     /// Performs the initial setup of the menu bar's section list.
     private func initializeSections() {
         guard sections.isEmpty else {
-            Logger.menuBar.info("Sections already initialized")
+            Logger.menuBarManager.info("Sections already initialized")
             return
         }
 
@@ -188,7 +190,7 @@ final class MenuBar: ObservableObject {
             do {
                 sections = try decoder.decode([MenuBarSection].self, from: sectionsData)
             } catch {
-                Logger.menuBar.error("Decoding error: \(error)")
+                Logger.menuBarManager.error("Decoding error: \(error)")
                 sections = []
             }
         } else {
@@ -203,7 +205,7 @@ final class MenuBar: ObservableObject {
             defaults.set(serializedSections, forKey: Defaults.sections)
             needsSave = false
         } catch {
-            Logger.menuBar.error("Encoding error: \(error)")
+            Logger.menuBarManager.error("Encoding error: \(error)")
         }
     }
 
@@ -226,94 +228,16 @@ final class MenuBar: ObservableObject {
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
-        // update the maxX coordinate of the main menu every
-        // time the frontmost application changes
         NSWorkspace.shared.publisher(for: \.frontmostApplication)
-            .sink { [weak self] runningApplication in
-                guard let runningApplication else {
-                    return
-                }
-
-                let appID = runningApplication.localizedName ?? "PID \(runningApplication.processIdentifier)"
-                Logger.menuBar.debug("New frontmost application: \(appID)")
-
-                // wait until the application is finished launching
-                let box = BoxObject<AnyCancellable?>()
-                box.base = runningApplication.publisher(for: \.isFinishedLaunching)
-                    .sink { [weak self, weak box] isFinishedLaunching in
-                        guard isFinishedLaunching else {
-                            Logger.menuBar.debug("\(appID) is launching...")
-                            return
-                        }
-
-                        Logger.menuBar.debug("\(appID) is finished launching")
-
-                        guard 
-                            let self,
-                            let box
-                        else {
-                            return
-                        }
-
-                        defer {
-                            box.base?.cancel()
-                            box.base = nil
-                        }
-
-                        do {
-                            // get the largest x-coordinate of all items
-                            guard
-                                let application = Application(runningApplication),
-                                let menuBar: UIElement = try application.attribute(.menuBar),
-                                let children: [UIElement] = try menuBar.arrayAttribute(.children),
-                                let maxX = try children.compactMap({ try ($0.attribute(.frame) as CGRect?)?.maxX }).max()
-                            else {
-                                mainMenuMaxX = 0
-                                return
-                            }
-                            mainMenuMaxX = maxX
-                        } catch {
-                            mainMenuMaxX = 0
-                            Logger.menuBar.error("Error updating main menu maxX: \(error)")
-                        }
-                    }
+            .sink { [weak self] frontmostApplication in
+                self?.handleFrontmostApplication(frontmostApplication)
             }
             .store(in: &c)
 
-        // update the control item for each section when the
-        // position of one changes
         Publishers.MergeMany(sections.map { $0.controlItem.$position })
             .throttle(for: 0.1, scheduler: DispatchQueue.main, latest: true)
             .sink { [weak self] _ in
-                guard let self else {
-                    return
-                }
-                let sortedControlItems = sections.lazy
-                    .map { section in
-                        section.controlItem
-                    }
-                    .sorted { first, second in
-                        // invisible items should preserve their ordering
-                        if !first.isVisible {
-                            return false
-                        }
-                        if !second.isVisible {
-                            return true
-                        }
-                        // expanded items should preserve their ordering
-                        switch (first.state, second.state) {
-                        case (.showItems, .showItems):
-                            return (first.position ?? 0) < (second.position ?? 0)
-                        case (.hideItems, _):
-                            return !first.expandsOnHide
-                        case (_, .hideItems):
-                            return second.expandsOnHide
-                        }
-                    }
-                // assign the items to their new sections
-                for index in 0..<sections.count {
-                    sections[index].controlItem = sortedControlItems[index]
-                }
+                self?.updateControlItems()
             }
             .store(in: &c)
 
@@ -329,49 +253,38 @@ final class MenuBar: ObservableObject {
         $iceIcon
             .receive(on: DispatchQueue.main)
             .sink { [weak self] iceIcon in
-                guard let self else {
-                    return
-                }
-                if case .custom = iceIcon.name {
-                    lastCustomIceIcon = iceIcon
-                }
-                do {
-                    let data = try encoder.encode(iceIcon)
-                    defaults.set(data, forKey: Defaults.iceIcon)
-                } catch {
-                    Logger.menuBar.error("Error encoding Ice icon: \(error)")
-                }
+                self?.handleIceIcon(iceIcon)
             }
             .store(in: &c)
 
         $customIceIconIsTemplate
             .receive(on: DispatchQueue.main)
             .sink { [weak self] isTemplate in
-                self?.defaults.set(isTemplate, forKey: Defaults.customIceIconIsTemplate)
+                self?.handleCustomIceIconIsTemplate(isTemplate)
             }
             .store(in: &c)
 
         $secondaryActionModifier
             .receive(on: DispatchQueue.main)
             .sink { [weak self] modifier in
-                self?.defaults.set(modifier.rawValue, forKey: Defaults.secondaryActionModifier)
+                self?.handleSecondaryActionModifier(modifier)
             }
             .store(in: &c)
 
         $showOnHover
             .receive(on: DispatchQueue.main)
             .sink { [weak self] showOnHover in
-                if showOnHover {
-                    self?.showOnHoverMonitor.start()
-                } else {
-                    self?.showOnHoverMonitor.stop()
-                }
-                self?.defaults.set(showOnHover, forKey: Defaults.showOnHover)
+                self?.handleShowOnHover(showOnHover)
             }
             .store(in: &c)
 
-        // propagate changes up from child observable objects
         appearanceManager.objectWillChange
+            .sink { [weak self] in
+                self?.objectWillChange.send()
+            }
+            .store(in: &c)
+
+        itemManager.objectWillChange
             .sink { [weak self] in
                 self?.objectWillChange.send()
             }
@@ -392,12 +305,137 @@ final class MenuBar: ObservableObject {
     func section(withName name: MenuBarSection.Name) -> MenuBarSection? {
         sections.first { $0.name == name }
     }
+
+    /// Handles changes in the frontmost application.
+    ///
+    /// - Parameter frontmostApplication: The new frontmost application.
+    private func handleFrontmostApplication(_ frontmostApplication: NSRunningApplication?) {
+        guard let frontmostApplication else {
+            return
+        }
+
+        let appID = frontmostApplication.localizedName ?? "PID \(frontmostApplication.processIdentifier)"
+        Logger.menuBarManager.debug("New frontmost application: \(appID)")
+
+        // wait until the application is finished launching
+        let box = BoxObject<AnyCancellable?>()
+        box.base = frontmostApplication.publisher(for: \.isFinishedLaunching).sink { [weak self, weak box] isFinishedLaunching in
+            guard isFinishedLaunching else {
+                Logger.menuBarManager.debug("\(appID) is launching...")
+                return
+            }
+
+            Logger.menuBarManager.debug("\(appID) is finished launching")
+
+            guard
+                let self,
+                let box
+            else {
+                return
+            }
+
+            defer {
+                box.base?.cancel()
+                box.base = nil
+            }
+
+            do {
+                // get the largest x-coordinate of all items
+                guard
+                    let application = Application(frontmostApplication),
+                    let menuBar: UIElement = try application.attribute(.menuBar),
+                    let children: [UIElement] = try menuBar.arrayAttribute(.children),
+                    let maxX = try children.compactMap({ try ($0.attribute(.frame) as CGRect?)?.maxX }).max()
+                else {
+                    mainMenuMaxX = 0
+                    return
+                }
+                mainMenuMaxX = maxX
+            } catch {
+                mainMenuMaxX = 0
+                Logger.menuBarManager.error("Error updating main menu maxX: \(error)")
+            }
+        }
+    }
+
+    /// Updates the control items for each section in the menu bar,
+    /// determining the section that each control item is assigned
+    /// to based on its order in the menu bar.
+    private func updateControlItems() {
+        let sortedControlItems = sections.lazy
+            .map { section in
+                section.controlItem
+            }
+            .sorted { first, second in
+                // invisible items should preserve their ordering
+                if !first.isVisible {
+                    return false
+                }
+                if !second.isVisible {
+                    return true
+                }
+                // expanded items should preserve their ordering
+                switch (first.state, second.state) {
+                case (.showItems, .showItems):
+                    return (first.position ?? 0) < (second.position ?? 0)
+                case (.hideItems, _):
+                    return !first.expandsOnHide
+                case (_, .hideItems):
+                    return second.expandsOnHide
+                }
+            }
+        // assign the items to their new sections
+        for index in 0..<sections.count {
+            sections[index].controlItem = sortedControlItems[index]
+        }
+    }
+
+    /// Handles changes to the ``iceIcon`` property.
+    ///
+    /// - Parameter iceIcon: The new value of the property.
+    private func handleIceIcon(_ iceIcon: ControlItemImageSet) {
+        if case .custom = iceIcon.name {
+            lastCustomIceIcon = iceIcon
+        }
+        do {
+            let data = try encoder.encode(iceIcon)
+            defaults.set(data, forKey: Defaults.iceIcon)
+        } catch {
+            Logger.menuBarManager.error("Error encoding Ice icon: \(error)")
+        }
+    }
+
+    /// Handles changes to the ``customIceIconIsTemplate`` property.
+    ///
+    /// - Parameter isTemplate: The new value of the property.
+    private func handleCustomIceIconIsTemplate(_ isTemplate: Bool) {
+        defaults.set(isTemplate, forKey: Defaults.customIceIconIsTemplate)
+    }
+
+    /// Handles changes to the ``secondaryActionModifier`` property.
+    ///
+    /// - Parameter modifier: The new value of the property.
+    private func handleSecondaryActionModifier(_ modifier: Hotkey.Modifiers) {
+        defaults.set(modifier.rawValue, forKey: Defaults.secondaryActionModifier)
+    }
+
+    /// Handles changes to the ``showOnHover`` property.
+    ///
+    /// - Parameter showOnHover: The new value of the property.
+    private func handleShowOnHover(_ showOnHover: Bool) {
+        if showOnHover {
+            showOnHoverMonitor.start()
+        } else {
+            showOnHoverMonitor.stop()
+        }
+        defaults.set(showOnHover, forKey: Defaults.showOnHover)
+    }
 }
 
 // MARK: MenuBar: BindingExposable
-extension MenuBar: BindingExposable { }
+extension MenuBarManager: BindingExposable { }
 
 // MARK: - Logger
 private extension Logger {
-    static let menuBar = Logger(category: "MenuBar")
+    static let menuBarManager = Logger(category: "MenuBarManager")
 }

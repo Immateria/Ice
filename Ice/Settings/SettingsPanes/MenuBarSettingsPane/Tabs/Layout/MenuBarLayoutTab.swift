@@ -23,11 +23,11 @@ struct MenuBarLayoutTab: View {
             // not displayed; temporary workaround is to put
             // a slight delay before observing starts
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                appState.itemManager.startObserving()
+                appState.menuBarManager.itemManager.startObserving()
             }
         }
         .onDisappear {
-            appState.itemManager.stopObserving()
+            appState.menuBarManager.itemManager.stopObserving()
         }
     }
 
@@ -43,7 +43,7 @@ struct MenuBarLayoutTab: View {
     @ViewBuilder
     private var layoutViews: some View {
         Form {
-            if let visibleSection = appState.menuBar.section(withName: .visible) {
+            if let visibleSection = appState.menuBarManager.section(withName: .visible) {
                 Section(visibleSection.name.rawValue) {
                     LayoutBar(section: visibleSection)
                         .annotation {
@@ -52,7 +52,7 @@ struct MenuBarLayoutTab: View {
                 }
             }
 
-            if let hiddenSection = appState.menuBar.section(withName: .hidden) {
+            if let hiddenSection = appState.menuBarManager.section(withName: .hidden) {
                 Spacer()
                     .frame(maxHeight: 25)
 
@@ -64,7 +64,7 @@ struct MenuBarLayoutTab: View {
                 }
             }
 
-            if let alwaysHiddenSection = appState.menuBar.section(withName: .alwaysHidden) {
+            if let alwaysHiddenSection = appState.menuBarManager.section(withName: .alwaysHidden) {
                 Spacer()
                     .frame(maxHeight: 25)
 

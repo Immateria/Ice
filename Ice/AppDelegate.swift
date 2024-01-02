@@ -23,7 +23,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             // checks and perform initial setup
             if AppState.shared.permissionsManager.hasPermission {
                 AppState.shared.permissionsManager.stopAll()
-                AppState.shared.menuBar.performSetup()
+                AppState.shared.menuBarManager.performSetup()
             }
         }
 

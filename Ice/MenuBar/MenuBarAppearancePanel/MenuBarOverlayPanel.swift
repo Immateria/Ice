@@ -77,7 +77,7 @@ private class MenuBarOverlayPanelView: NSView {
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
-        if let menuBar = appearanceManager?.menuBar {
+        if let menuBar = appearanceManager?.menuBarManager {
             menuBar.$mainMenuMaxX
                 .sink { [weak self] _ in
                     self?.needsDisplay = true
@@ -179,9 +179,9 @@ private class MenuBarOverlayPanelView: NSView {
     /// Returns a path for the ``MenuBarShapeKind/split`` shape kind.
     private func pathForSplitShapeKind(in rect: CGRect, info: MenuBarSplitShapeInfo) -> NSBezierPath {
         guard
-            let menuBar = appearanceManager?.menuBar,
-            let hiddenSection = menuBar.section(withName: .hidden),
-            let alwaysHiddenSection = menuBar.section(withName: .alwaysHidden)
+            let menuBarManager = appearanceManager?.menuBarManager,
+            let hiddenSection = menuBarManager.section(withName: .hidden),
+            let alwaysHiddenSection = menuBarManager.section(withName: .alwaysHidden)
         else {
             Logger.menuBarOverlayPanel.notice("Unable to create split shape path")
             return NSBezierPath(rect: rect)
@@ -201,7 +201,7 @@ private class MenuBarOverlayPanelView: NSView {
             let shapeBounds = CGRect(
                 x: rect.height / 2,
                 y: rect.origin.y,
-                width: (menuBar.mainMenuMaxX - rect.height) + 10,
+                width: (menuBarManager.mainMenuMaxX - rect.height) + 10,
                 height: rect.height
             )
             let leadingEndCapBounds = CGRect(
@@ -211,7 +211,7 @@ private class MenuBarOverlayPanelView: NSView {
                 height: rect.height
             )
             let trailingEndCapBounds = CGRect(
-                x: (menuBar.mainMenuMaxX - rect.height) + 10,
+                x: (menuBarManager.mainMenuMaxX - rect.height) + 10,
                 y: rect.origin.y,
                 width: rect.height,
                 height: rect.height
