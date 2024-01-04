@@ -61,14 +61,18 @@ final class MenuBarManager: ObservableObject {
 
     private var cancellables = Set<AnyCancellable>()
 
-    private let encoder = JSONEncoder()
-    private let decoder = JSONDecoder()
-
+    private let encoder: JSONEncoder
+    private let decoder: JSONDecoder
     private let defaults: UserDefaults
 
     private(set) weak var appState: AppState?
 
-    private(set) lazy var appearanceManager = MenuBarAppearanceManager(menuBarManager: self)
+    private(set) lazy var appearanceManager = MenuBarAppearanceManager(
+        menuBarManager: self,
+        encoder: encoder,
+        decoder: decoder,
+        defaults: defaults
+    )
     private(set) lazy var itemManager = MenuBarItemManager(menuBarManager: self)
 
     private lazy var showOnHoverMonitor = UniversalEventMonitor(
@@ -142,8 +146,15 @@ final class MenuBarManager: ObservableObject {
     }
 
     /// Initializes a new menu bar manager instance.
-    init(appState: AppState, defaults: UserDefaults) {
+    init(
+        appState: AppState,
+        encoder: JSONEncoder,
+        decoder: JSONDecoder,
+        defaults: UserDefaults
+    ) {
         self.appState = appState
+        self.encoder = encoder
+        self.decoder = decoder
         self.defaults = defaults
     }
 

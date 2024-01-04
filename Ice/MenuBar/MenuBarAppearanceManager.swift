@@ -61,13 +61,25 @@ final class MenuBarAppearanceManager: ObservableObject {
 
     private var cancellables = Set<AnyCancellable>()
 
+    private let encoder: JSONEncoder
+    private let decoder: JSONDecoder
+    private let defaults: UserDefaults
+
     private(set) weak var menuBarManager: MenuBarManager?
 
     private lazy var backingPanel = MenuBarBackingPanel(appearanceManager: self)
     private lazy var overlayPanel = MenuBarOverlayPanel(appearanceManager: self)
 
-    init(menuBarManager: MenuBarManager) {
+    init(
+        menuBarManager: MenuBarManager,
+        encoder: JSONEncoder,
+        decoder: JSONDecoder,
+        defaults: UserDefaults
+    ) {
         self.menuBarManager = menuBarManager
+        self.encoder = encoder
+        self.decoder = decoder
+        self.defaults = defaults
     }
 
     func performSetup() {
@@ -83,9 +95,6 @@ final class MenuBarAppearanceManager: ObservableObject {
     /// Loads data from storage and sets the initial state
     /// of the manager from that data.
     private func loadInitialState() {
-        let defaults = UserDefaults.standard
-        let decoder = JSONDecoder()
-
         hasShadow = defaults.bool(forKey: Defaults.menuBarHasShadow)
         hasBorder = defaults.bool(forKey: Defaults.menuBarHasBorder)
         borderWidth = defaults.object(forKey: Defaults.menuBarBorderWidth) as? Double ?? 1
@@ -117,9 +126,6 @@ final class MenuBarAppearanceManager: ObservableObject {
 
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
-
-        let defaults = UserDefaults.standard
-        let encoder = JSONEncoder()
 
         DistributedNotificationCenter.default()
             .publisher(for: Notification.Name("com.apple.screenIsLocked"))
@@ -165,102 +171,71 @@ final class MenuBarAppearanceManager: ObservableObject {
 
         $hasShadow
             .receive(on: DispatchQueue.main)
-            .sink { hasShadow in
-                defaults.set(hasShadow, forKey: Defaults.menuBarHasShadow)
+            .sink { [weak self] hasShadow in
+                self?.handleHasShadow(hasShadow)
             }
             .store(in: &c)
 
         $hasBorder
             .receive(on: DispatchQueue.main)
-            .sink { hasBorder in
-                defaults.set(hasBorder, forKey: Defaults.menuBarHasBorder)
+            .sink { [weak self] hasBorder in
+                self?.handleHasBorder(hasBorder)
             }
             .store(in: &c)
 
         $borderColor
             .receive(on: DispatchQueue.main)
-            .sink { borderColor in
-                do {
-                    let data = try encoder.encode(CodableColor(cgColor: borderColor))
-                    defaults.set(data, forKey: Defaults.menuBarBorderColor)
-                } catch {
-                    Logger.appearanceManager.error("Error encoding border color: \(error)")
-                }
+            .sink { [weak self] borderColor in
+                self?.handleBorderColor(borderColor)
             }
             .store(in: &c)
 
         $borderWidth
             .receive(on: DispatchQueue.main)
-            .sink { borderWidth in
-                defaults.set(borderWidth, forKey: Defaults.menuBarBorderWidth)
+            .sink { [weak self] borderWidth in
+                self?.handleBorderWidth(borderWidth)
             }
             .store(in: &c)
 
         $tintKind
             .receive(on: DispatchQueue.main)
-            .sink { tintKind in
-                defaults.set(tintKind.rawValue, forKey: Defaults.menuBarTintKind)
+            .sink { [weak self] tintKind in
+                self?.handleTintKind(tintKind)
             }
             .store(in: &c)
 
         $tintColor
             .receive(on: DispatchQueue.main)
-            .sink { tintColor in
-                do {
-                    let data = try encoder.encode(CodableColor(cgColor: tintColor))
-                    defaults.set(data, forKey: Defaults.menuBarTintColor)
-                } catch {
-                    Logger.appearanceManager.error("Error encoding tint color: \(error)")
-                }
+            .sink { [weak self] tintColor in
+                self?.handleTintColor(tintColor)
             }
             .store(in: &c)
 
         $tintGradient
             .receive(on: DispatchQueue.main)
-            .encode(encoder: encoder)
-            .sink { completion in
-                if case .failure(let error) = completion {
-                    Logger.appearanceManager.error("Error encoding tint gradient: \(error)")
-                }
-            } receiveValue: { data in
-                defaults.set(data, forKey: Defaults.menuBarTintGradient)
+            .sink { [weak self] tintGradient in
+                self?.handleTintGradient(tintGradient)
             }
             .store(in: &c)
 
         $shapeKind
             .receive(on: DispatchQueue.main)
-            .encode(encoder: encoder)
-            .sink { completion in
-                if case .failure(let error) = completion {
-                    Logger.appearanceManager.error("Error encoding menu bar shape kind: \(error)")
-                }
-            } receiveValue: { [weak self] data in
-                self?.updateDesktopWallpaper()
-                defaults.set(data, forKey: Defaults.menuBarShapeKind)
+            .sink { [weak self] shapeKind in
+                self?.handleShapeKind(shapeKind)
             }
             .store(in: &c)
 
         $fullShapeInfo
             .receive(on: DispatchQueue.main)
-            .encode(encoder: encoder)
-            .sink { completion in
-                if case .failure(let error) = completion {
-                    Logger.appearanceManager.error("Error encoding menu bar full shape info: \(error)")
-                }
-            } receiveValue: { data in
-                defaults.set(data, forKey: Defaults.menuBarFullShapeInfo)
+            .sink { [weak self] fullShapeInfo in
+                self?.handleFullShapeInfo(fullShapeInfo)
             }
             .store(in: &c)
 
         $splitShapeInfo
             .receive(on: DispatchQueue.main)
-            .encode(encoder: encoder)
-            .sink { completion in
-                if case .failure(let error) = completion {
-                    Logger.appearanceManager.error("Error encoding menu bar split shape info: \(error)")
-                }
-            } receiveValue: { data in
-                defaults.set(data, forKey: Defaults.menuBarSplitShapeInfo)
+            .sink { [weak self] splitShapeInfo in
+                self?.handleSplitShapeInfo(splitShapeInfo)
             }
             .store(in: &c)
 
@@ -274,6 +249,109 @@ final class MenuBarAppearanceManager: ObservableObject {
         cancellables = c
     }
 
+    /// Handles changes to the ``hasShadow`` property.
+    ///
+    /// - Parameter hasShadow: The new value of the property.
+    private func handleHasShadow(_ hasShadow: Bool) {
+        defaults.set(hasShadow, forKey: Defaults.menuBarHasShadow)
+    }
+
+    /// Handles changes to the ``hasBorder`` property.
+    ///
+    /// - Parameter hasBorder: The new value of the property.
+    private func handleHasBorder(_ hasBorder: Bool) {
+        defaults.set(hasBorder, forKey: Defaults.menuBarHasBorder)
+    }
+
+    /// Handles changes to the ``borderColor`` property.
+    ///
+    /// - Parameter borderColor: The new value of the property.
+    private func handleBorderColor(_ borderColor: CGColor) {
+        do {
+            let data = try encoder.encode(CodableColor(cgColor: borderColor))
+            defaults.set(data, forKey: Defaults.menuBarBorderColor)
+        } catch {
+            Logger.appearanceManager.error("Error encoding border color: \(error)")
+        }
+    }
+
+    /// Handles changes to the ``borderWidth`` property.
+    ///
+    /// - Parameter borderWidth: The new value of the property.
+    private func handleBorderWidth(_ borderWidth: Double) {
+        defaults.set(borderWidth, forKey: Defaults.menuBarBorderWidth)
+    }
+
+    /// Handles changes to the ``tintKind`` property.
+    ///
+    /// - Parameter tintKind: The new value of the property.
+    private func handleTintKind(_ tintKind: MenuBarTintKind) {
+        defaults.set(tintKind.rawValue, forKey: Defaults.menuBarTintKind)
+    }
+
+    /// Handles changes to the ``tintColor`` property.
+    ///
+    /// - Parameter tintColor: The new value of the property.
+    private func handleTintColor(_ tintColor: CGColor) {
+        do {
+            let data = try encoder.encode(CodableColor(cgColor: tintColor))
+            defaults.set(data, forKey: Defaults.menuBarTintColor)
+        } catch {
+            Logger.appearanceManager.error("Error encoding tint color: \(error)")
+        }
+    }
+
+    /// Handles changes to the ``tintGradient`` property.
+    ///
+    /// - Parameter tintGradient: The new value of the property.
+    private func handleTintGradient(_ tintGradient: CustomGradient) {
+        do {
+            let data = try encoder.encode(tintGradient)
+            defaults.set(data, forKey: Defaults.menuBarTintGradient)
+        } catch {
+            Logger.appearanceManager.error("Error encoding tint gradient: \(error)")
+        }
+    }
+
+    /// Handles changes to the ``shapeKind`` property.
+    ///
+    /// - Parameter shapeKind: The new value of the property.
+    private func handleShapeKind(_ shapeKind: MenuBarShapeKind) {
+        do {
+            let data = try encoder.encode(shapeKind)
+            updateDesktopWallpaper()
+            defaults.set(data, forKey: Defaults.menuBarShapeKind)
+        } catch {
+            Logger.appearanceManager.error("Error encoding shape kind: \(error)")
+        }
+    }
+
+    /// Handles changes to the ``fullShapeInfo`` property.
+    ///
+    /// - Parameter fullShapeInfo: The new value of the property.
+    private func handleFullShapeInfo(_ fullShapeInfo: MenuBarFullShapeInfo) {
+        do {
+            let data = try encoder.encode(fullShapeInfo)
+            defaults.set(data, forKey: Defaults.menuBarFullShapeInfo)
+        } catch {
+            Logger.appearanceManager.error("Error encoding full shape info: \(error)")
+        }
+    }
+
+    /// Handles changes to the ``splitShapeInfo`` property.
+    ///
+    /// - Parameter splitShapeInfo: The new value of the property.
+    private func handleSplitShapeInfo(_ splitShapeInfo: MenuBarSplitShapeInfo) {
+        do {
+            let data = try encoder.encode(splitShapeInfo)
+            defaults.set(data, forKey: Defaults.menuBarSplitShapeInfo)
+        } catch {
+            Logger.appearanceManager.error("Error encoding split shape info: \(error)")
+        }
+    }
+
+    /// Captures and stores a current image of the desktop
+    /// wallpaper, clipped to the bounds of the menu bar.
     private func updateDesktopWallpaper() {
         guard shapeKind != .none else {
             desktopWallpaper = nil
@@ -339,6 +417,8 @@ final class MenuBarAppearanceManager: ObservableObject {
         }
     }
 
+    /// Calculates and stores the average color of the area
+    /// of the desktop wallpaper behind the menu bar.
     private func updateAverageColor() {
         guard let color = desktopWallpaper?.averageColor(
             accuracy: .low,
