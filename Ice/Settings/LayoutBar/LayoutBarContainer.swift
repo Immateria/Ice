@@ -317,4 +317,11 @@ class LayoutBarContainer: NSView {
         }
         return arrangedViews[index]
     }
+
+    /// Returns the index of the given arranged view.
+    ///
+    /// - Parameter arrangedView: The arranged view to search for.
+    func index(of arrangedView: LayoutBarItemView) -> Int? {
+        arrangedViews.firstIndex(of: arrangedView)
+    }
 }

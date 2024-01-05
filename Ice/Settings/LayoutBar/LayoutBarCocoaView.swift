@@ -99,32 +99,34 @@ class LayoutBarCocoaView: NSView {
 
     override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
         guard
-            let itemView = sender.draggingSource as? LayoutBarItemView,
+            let sourceView = sender.draggingSource as? LayoutBarItemView,
+            let sourceIndex = container.index(of: sourceView),
             sender.draggingSourceOperationMask == .move
         else {
             return false
         }
         Task {
             do {
-                guard let index = container.arrangedViews.firstIndex(of: itemView) else {
-                    return
-                }
                 let content = try await SCShareableContent.current
                 if
-                    let before = container.arrangedView(atIndex: index - 1),
-                    let beforeWindow = content.windows.first(where: { $0.windowID == before.item.window.windowID })
+                    let destinationView = container.arrangedView(atIndex: sourceIndex - 1),
+                    let destinationWindow = content.windows.first(where: { window in
+                        window.windowID == destinationView.item.window.windowID
+                    })
                 {
                     try await container.menuBarManager.itemManager.move(
-                        itemView.item,
-                        toXPosition: beforeWindow.frame.offsetBy(dx: beforeWindow.frame.width / 2, dy: 0).midX
+                        sourceView.item,
+                        toXPosition: destinationWindow.frame.midX + 1
                     )
                 } else if
-                    let after = container.arrangedView(atIndex: index + 1),
-                    let afterWindow = content.windows.first(where: { $0.windowID == after.item.window.windowID })
+                    let destinationView = container.arrangedView(atIndex: sourceIndex + 1),
+                    let destinationWindow = content.windows.first(where: { window in
+                        window.windowID == destinationView.item.window.windowID
+                    })
                 {
                     try await container.menuBarManager.itemManager.move(
-                        itemView.item,
-                        toXPosition: afterWindow.frame.offsetBy(dx: -afterWindow.frame.width / 2, dy: 0).midX
+                        sourceView.item,
+                        toXPosition: destinationWindow.frame.midX - 1
                     )
                 }
             } catch {
@@ -132,10 +134,5 @@ class LayoutBarCocoaView: NSView {
             }
         }
         return true
-    }
-
-    func moveItemView(_ itemView: LayoutBarItemView) async throws {
-        let position = container.bounds.maxX - itemView.frame.maxX
-        try await container.menuBarManager.itemManager.move(itemView.item, toXPosition: section.maxX - position)
     }
 }

@@ -292,23 +292,23 @@ class MenuBarItemManager: ObservableObject {
         mouseUpEvent.flags = .maskCommand
 
         // hide the cursor and move it to the start position
-        // CGDisplayHideCursor(CGMainDisplayID())
+        CGDisplayHideCursor(CGMainDisplayID())
         CGWarpMouseCursorPosition(startPoint)
 
         defer {
             // move the cursor back to its original location and show it
             CGWarpMouseCursorPosition(originalMouseLocation)
-            // CGDisplayShowCursor(CGMainDisplayID())
+            CGDisplayShowCursor(CGMainDisplayID())
         }
 
         mouseDownEvent.post(tap: .cghidEventTap)
-        try await Task.sleep(for: .seconds(0.25))
+        try await Task.sleep(for: .milliseconds(10))
 
         mouseDraggedEvent.post(tap: .cghidEventTap)
-        try await Task.sleep(for: .seconds(0.25))
+        try await Task.sleep(for: .milliseconds(10))
 
         mouseUpEvent.post(tap: .cghidEventTap)
-        try await Task.sleep(for: .seconds(0.25))
+        try await Task.sleep(for: .milliseconds(10))
     }
 }
 
