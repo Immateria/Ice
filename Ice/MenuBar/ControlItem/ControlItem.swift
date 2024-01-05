@@ -48,7 +48,24 @@ final class ControlItem: ObservableObject {
     ///
     /// This value corresponds to whether the item's section is
     /// enabled.
-    @Published var isVisible: Bool
+    var isVisible: Bool {
+        didSet {
+            var deferredBlock: (() -> Void)?
+            if !isVisible {
+                // setting the status item to invisible has the unwanted
+                // side effect of deleting the preferred position; cache
+                // and restore afterwards
+                let autosaveName = autosaveName
+                let cached = StatusItemDefaults[.preferredPosition, autosaveName]
+                deferredBlock = {
+                    StatusItemDefaults[.preferredPosition, autosaveName] = cached
+                }
+            }
+            statusItem.isVisible = isVisible
+            menuBarManager?.needsSave = true
+            deferredBlock?()
+        }
+    }
 
     /// The hiding state of the control item.
     ///
@@ -197,29 +214,6 @@ final class ControlItem: ObservableObject {
         $state
             .sink { [weak self] state in
                 self?.updateStatusItem(with: state)
-            }
-            .store(in: &c)
-
-        $isVisible
-            .removeDuplicates()
-            .sink { [weak self] isVisible in
-                guard let self else {
-                    return
-                }
-                var deferredBlock: (() -> Void)?
-                if !isVisible {
-                    // setting the status item to invisible has the unwanted
-                    // side effect of deleting the preferred position; cache
-                    // and restore afterwards
-                    let autosaveName = autosaveName
-                    let cached = StatusItemDefaults[.preferredPosition, autosaveName]
-                    deferredBlock = {
-                        StatusItemDefaults[.preferredPosition, autosaveName] = cached
-                    }
-                }
-                statusItem.isVisible = isVisible
-                menuBarManager?.needsSave = true
-                deferredBlock?()
             }
             .store(in: &c)
 

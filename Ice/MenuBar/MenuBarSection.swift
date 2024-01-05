@@ -16,12 +16,6 @@ final class MenuBarSection: ObservableObject {
         case alwaysHidden = "Always Hidden"
     }
 
-    /// User-visible name that describes the section.
-    @Published var name: Name
-
-    /// A Boolean value that indicates whether the section is enabled.
-    @Published var isEnabled: Bool
-
     /// The control item that manages the visibility of the section.
     @Published var controlItem: ControlItem {
         didSet {
@@ -43,10 +37,28 @@ final class MenuBarSection: ObservableObject {
     private var listener: Hotkey.Listener?
     private var cancellables = Set<AnyCancellable>()
 
+    /// User-visible name that describes the section.
+    let name: Name
+
     /// The menu bar associated with the section.
     weak var menuBarManager: MenuBarManager? {
         didSet {
             controlItem.menuBarManager = menuBarManager
+        }
+    }
+
+    /// A Boolean value that indicates whether the section is enabled.
+    var isEnabled: Bool {
+        get {
+            controlItem.isVisible
+        }
+        set {
+            controlItem.isVisible = newValue
+            if newValue {
+                enableHotkey()
+            } else {
+                disableHotkey()
+            }
         }
     }
 
@@ -84,7 +96,6 @@ final class MenuBarSection: ObservableObject {
         self.name = name
         self.controlItem = controlItem
         self.hotkey = hotkey
-        self.isEnabled = controlItem.isVisible
         enableHotkey()
         configureCancellables()
     }
@@ -112,7 +123,11 @@ final class MenuBarSection: ObservableObject {
 
         self.init(
             name: name,
-            controlItem: ControlItem(autosaveName: autosaveName, position: position, state: state),
+            controlItem: ControlItem(
+                autosaveName: autosaveName,
+                position: position,
+                state: state
+            ),
             hotkey: nil
         )
     }
@@ -124,37 +139,6 @@ final class MenuBarSection: ObservableObject {
         controlItem.objectWillChange
             .sink { [weak self] in
                 self?.objectWillChange.send()
-            }
-            .store(in: &c)
-
-        controlItem.$isVisible
-            .removeDuplicates()
-            .sink { [weak self] isVisible in
-                guard
-                    let self,
-                    isEnabled != isVisible
-                else {
-                    return
-                }
-                isEnabled = isVisible
-            }
-            .store(in: &c)
-
-        $isEnabled
-            .removeDuplicates()
-            .sink { [weak self] isEnabled in
-                guard
-                    let self,
-                    controlItem.isVisible != isEnabled
-                else {
-                    return
-                }
-                controlItem.isVisible = isEnabled
-                if isEnabled {
-                    enableHotkey()
-                } else {
-                    disableHotkey()
-                }
             }
             .store(in: &c)
 
