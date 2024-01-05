@@ -37,7 +37,7 @@ class MenuBarItemManager: ObservableObject {
     private(set) weak var menuBarManager: MenuBarManager?
 
     private var timer: AnyCancellable?
-    private var previousWindowCount = 0
+    private var cachedWindowsHash = 0
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -89,7 +89,7 @@ class MenuBarItemManager: ObservableObject {
         Task { @MainActor in
             try await self.updateItems()
         }
-        timer = Timer.publish(every: 5, on: .main, in: .common)
+        timer = Timer.publish(every: 3, on: .main, in: .common)
             .autoconnect()
             .sink { [weak self] _ in
                 guard let self else {
@@ -170,11 +170,11 @@ class MenuBarItemManager: ObservableObject {
         try await Task.sleep(for: .milliseconds(10))
 
         let windows = try await getMenuBarItemWindows()
-        let newWindowCount = windows.count
+        let newWindowsHash = windows.hashValue
 
         // only continue if the number of windows in the
         // menu bar has changed from last time
-        if newWindowCount != previousWindowCount {
+        if newWindowsHash != cachedWindowsHash {
             let filteredWindows = windows.filter { window in
                 window.isOnScreen &&
                 // filter out our own items
@@ -203,7 +203,7 @@ class MenuBarItemManager: ObservableObject {
             }
 
             items = sortedItems
-            previousWindowCount = newWindowCount
+            cachedWindowsHash = newWindowsHash
         }
 
         // restore the hiding states of all sections to
