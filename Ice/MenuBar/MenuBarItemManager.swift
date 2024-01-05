@@ -38,6 +38,8 @@ class MenuBarItemManager: ObservableObject {
 
     private var timer: AnyCancellable?
     private var cachedWindowsHash = 0
+    private var hiddenControlItem: MenuBarItem?
+    private var alwaysHiddenControlItem: MenuBarItem?
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -54,26 +56,40 @@ class MenuBarItemManager: ObservableObject {
                 guard
                     let self,
                     let menuBarManager,
-                    let hiddenSection = menuBarManager.section(withName: .hidden),
                     let alwaysHiddenSection = menuBarManager.section(withName: .alwaysHidden)
                 else {
                     return
                 }
 
                 visibleItems = items.filter { item in
-                    item.window.frame.midX > (hiddenSection.controlItem.windowFrame?.midX ?? 0)
+                    guard let hiddenControlItem = self.hiddenControlItem else {
+                        return false
+                    }
+                    return item.window.frame.minX >= hiddenControlItem.window.frame.maxX
                 }
                 if alwaysHiddenSection.isEnabled {
                     hiddenItems = items.filter { item in
-                        item.window.frame.midX < (hiddenSection.controlItem.windowFrame?.midX ?? 0) &&
-                        item.window.frame.midX > (alwaysHiddenSection.controlItem.windowFrame?.midX ?? 0)
+                        guard
+                            let hiddenControlItem = self.hiddenControlItem,
+                            let alwaysHiddenControlItem = self.alwaysHiddenControlItem
+                        else {
+                            return false
+                        }
+                        return item.window.frame.maxX <= hiddenControlItem.window.frame.minX &&
+                        item.window.frame.minX >= alwaysHiddenControlItem.window.frame.maxX
                     }
                     alwaysHiddenItems = items.filter { item in
-                        item.window.frame.midX < (alwaysHiddenSection.controlItem.windowFrame?.midX ?? 0)
+                        guard let alwaysHiddenControlItem = self.alwaysHiddenControlItem else {
+                            return false
+                        }
+                        return item.window.frame.maxX <= alwaysHiddenControlItem.window.frame.minX
                     }
                 } else {
                     hiddenItems = items.filter { item in
-                        item.window.frame.midX < (hiddenSection.controlItem.windowFrame?.midX ?? 0)
+                        guard let hiddenControlItem = self.hiddenControlItem else {
+                            return false
+                        }
+                        return item.window.frame.maxX <= hiddenControlItem.window.frame.minX
                     }
                     alwaysHiddenItems = []
                 }
@@ -153,7 +169,11 @@ class MenuBarItemManager: ObservableObject {
     /// items in the menu bar has changed.
     @MainActor
     private func updateItems() async throws {
-        guard let menuBarManager else {
+        guard
+            let menuBarManager,
+            let hiddenSection = menuBarManager.section(withName: .hidden),
+            let alwaysHiddenSection = menuBarManager.section(withName: .alwaysHidden)
+        else {
             return
         }
 
@@ -178,8 +198,8 @@ class MenuBarItemManager: ObservableObject {
             let filteredWindows = windows.filter { window in
                 window.isOnScreen &&
                 // filter out our own items
-                window.windowID != menuBarManager.section(withName: .hidden)?.controlItem.windowID &&
-                window.windowID != menuBarManager.section(withName: .alwaysHidden)?.controlItem.windowID
+                window.windowID != hiddenSection.controlItem.windowID &&
+                window.windowID != alwaysHiddenSection.controlItem.windowID
             }
 
             var newItems = [MenuBarItem]()
@@ -200,6 +220,29 @@ class MenuBarItemManager: ObservableObject {
             // sort the items by their order in the menu bar
             let sortedItems = newItems.sorted { first, second in
                 first.window.frame.minX < second.window.frame.minX
+            }
+
+            if let hiddenWindow = windows.first(where: { $0.windowID == hiddenSection.controlItem.windowID }) {
+                do {
+                    let image = try await ScreenshotManager.captureImage(
+                        withTimeout: .milliseconds(100),
+                        window: hiddenWindow
+                    )
+                    hiddenControlItem = MenuBarItem(window: hiddenWindow, image: image)
+                } catch {
+                    Logger.itemManager.error("Error capturing menu bar item: \(error)")
+                }
+            }
+            if let alwaysHiddenWindow = windows.first(where: { $0.windowID == alwaysHiddenSection.controlItem.windowID }) {
+                do {
+                    let image = try await ScreenshotManager.captureImage(
+                        withTimeout: .milliseconds(100),
+                        window: alwaysHiddenWindow
+                    )
+                    alwaysHiddenControlItem = MenuBarItem(window: alwaysHiddenWindow, image: image)
+                } catch {
+                    Logger.itemManager.error("Error capturing menu bar item: \(error)")
+                }
             }
 
             items = sortedItems
