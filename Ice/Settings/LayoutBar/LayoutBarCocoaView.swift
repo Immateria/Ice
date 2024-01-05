@@ -4,6 +4,7 @@
 //
 
 import Cocoa
+import ScreenCaptureKit
 
 /// A Cocoa view that manages the menu bar layout interface.
 class LayoutBarCocoaView: NSView {
@@ -105,7 +106,27 @@ class LayoutBarCocoaView: NSView {
         }
         Task {
             do {
-                try await moveItemView(itemView)
+                guard let index = container.arrangedViews.firstIndex(of: itemView) else {
+                    return
+                }
+                let content = try await SCShareableContent.current
+                if
+                    let before = container.arrangedView(atIndex: index - 1),
+                    let beforeWindow = content.windows.first(where: { $0.windowID == before.item.window.windowID })
+                {
+                    try await container.menuBarManager.itemManager.move(
+                        itemView.item,
+                        toXPosition: beforeWindow.frame.offsetBy(dx: beforeWindow.frame.width / 2, dy: 0).midX
+                    )
+                } else if
+                    let after = container.arrangedView(atIndex: index + 1),
+                    let afterWindow = content.windows.first(where: { $0.windowID == after.item.window.windowID })
+                {
+                    try await container.menuBarManager.itemManager.move(
+                        itemView.item,
+                        toXPosition: afterWindow.frame.offsetBy(dx: -afterWindow.frame.width / 2, dy: 0).midX
+                    )
+                }
             } catch {
                 NSAlert(error: error).runModal()
             }

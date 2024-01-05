@@ -178,7 +178,8 @@ class MenuBarItemManager: ObservableObject {
             let filteredWindows = windows.filter { window in
                 window.isOnScreen &&
                 // filter out our own items
-                window.owningApplication?.processID != ProcessInfo.processInfo.processIdentifier
+                window.windowID != menuBarManager.section(withName: .hidden)?.controlItem.windowID &&
+                window.windowID != menuBarManager.section(withName: .alwaysHidden)?.controlItem.windowID
             }
 
             var newItems = [MenuBarItem]()

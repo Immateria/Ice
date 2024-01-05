@@ -76,6 +76,14 @@ final class ControlItem: ObservableObject {
         statusItem.autosaveName
     }
 
+    /// The identifier of the control item's window.
+    var windowID: CGWindowID? {
+        guard let windowNumber = statusItem.button?.window?.windowNumber else {
+            return nil
+        }
+        return CGWindowID(windowNumber)
+    }
+
     /// The menu bar section associated with the control item.
     var section: MenuBarSection? {
         menuBarManager?.sections.first { $0.controlItem == self }
