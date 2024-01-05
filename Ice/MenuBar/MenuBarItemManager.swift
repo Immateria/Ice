@@ -36,12 +36,12 @@ class MenuBarItemManager: ObservableObject {
 
     private(set) weak var menuBarManager: MenuBarManager?
 
-    private var timer: AnyCancellable?
-
     private var cachedWindowsHash = 0
 
     private var hiddenControlItem: MenuBarItem?
     private var alwaysHiddenControlItem: MenuBarItem?
+
+    private var timer: AnyCancellable?
 
     private var cancellables = Set<AnyCancellable>()
 
