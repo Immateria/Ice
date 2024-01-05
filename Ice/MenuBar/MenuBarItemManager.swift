@@ -37,7 +37,9 @@ class MenuBarItemManager: ObservableObject {
     private(set) weak var menuBarManager: MenuBarManager?
 
     private var timer: AnyCancellable?
+
     private var cachedWindowsHash = 0
+
     private var hiddenControlItem: MenuBarItem?
     private var alwaysHiddenControlItem: MenuBarItem?
 
@@ -108,11 +110,8 @@ class MenuBarItemManager: ObservableObject {
         timer = Timer.publish(every: 3, on: .main, in: .common)
             .autoconnect()
             .sink { [weak self] _ in
-                guard let self else {
-                    return
-                }
-                Task { @MainActor in
-                    try await self.updateItems()
+                Task { @MainActor [self] in
+                    try await self?.updateItems()
                 }
             }
     }
@@ -153,18 +152,6 @@ class MenuBarItemManager: ObservableObject {
             }
     }
 
-    /// Returns the current hiding states of all sections in
-    /// the menu bar.
-    private func getCurrentHidingStates() -> [MenuBarSection.Name: ControlItem.HidingState] {
-        var states = [MenuBarSection.Name: ControlItem.HidingState]()
-        if let menuBarManager {
-            for section in menuBarManager.sections {
-                states[section.name] = section.controlItem.state
-            }
-        }
-        return states
-    }
-
     /// Updates the ``items`` property, if the number of
     /// items in the menu bar has changed.
     @MainActor
@@ -178,7 +165,9 @@ class MenuBarItemManager: ObservableObject {
         }
 
         // store current hiding states of the sections
-        let currentStates = getCurrentHidingStates()
+        let currentStates = menuBarManager.sections.reduce(into: [:]) { states, section in
+            states[section.name] = section.controlItem.state
+        }
 
         // can't capture off-screen items; iterate through
         // the sections and temporarily show all items
