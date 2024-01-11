@@ -458,16 +458,17 @@
 		7166832C2A767E6A006ABF84 /* Ice */ = {
 			isa = PBXGroup;
 			children = (
-				7166832D2A767E6A006ABF84 /* IceApp.swift */,
+				716683362A767E6B006ABF84 /* Ice.entitlements */,
 				7166833C2A7680CE006ABF84 /* AppDelegate.swift */,
 				1725FC692AED973800A59081 /* AppState.swift */,
-				716683362A767E6B006ABF84 /* Ice.entitlements */,
+				7166832D2A767E6A006ABF84 /* IceApp.swift */,
 				716683312A767E6B006ABF84 /* Assets.xcassets */,
 				716683412A76811C006ABF84 /* Extensions */,
 				7166834E2A768190006ABF84 /* MenuBar */,
 				1787C42A2B16ADF2002F50DF /* Permissions */,
 				170749BF2B11A2BB009DDF73 /* Resources */,
 				7133ED662A858230000A7E1B /* Settings */,
+				71D36C492A88EDD200D89CD5 /* Swizzling */,
 				71D36C522A89443800D89CD5 /* UI */,
 				7166833E2A76811C006ABF84 /* Utilities */,
 			);
@@ -488,7 +489,6 @@
 				177354802B1F5F38001CF731 /* ScreenshotManager.swift */,
 				17B484FA2B3CBE77006173A5 /* TrimTransparency.swift */,
 				170749CB2B120951009DDF73 /* EventMonitors */,
-				71D36C492A88EDD200D89CD5 /* Swizzling */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
