@@ -40,32 +40,11 @@ final class ControlItem: ObservableObject {
     /// The control item's underlying status item.
     private let statusItem: NSStatusItem
 
+    /// The control item's window delegate.
+    private let windowDelegate = ControlItemWindowDelegate()
+
     /// The position of the control item in the menu bar.
     @Published private(set) var position: CGFloat?
-
-    /// A Boolean value that indicates whether the control item
-    /// is visible.
-    ///
-    /// This value corresponds to whether the item's section is
-    /// enabled.
-    var isVisible: Bool {
-        didSet {
-            var deferredBlock: (() -> Void)?
-            if !isVisible {
-                // setting the status item to invisible has the unwanted
-                // side effect of deleting the preferred position; cache
-                // and restore afterwards
-                let autosaveName = autosaveName
-                let cached = StatusItemDefaults[.preferredPosition, autosaveName]
-                deferredBlock = {
-                    StatusItemDefaults[.preferredPosition, autosaveName] = cached
-                }
-            }
-            statusItem.isVisible = isVisible
-            menuBarManager?.needsSave = true
-            deferredBlock?()
-        }
-    }
 
     /// The hiding state of the control item.
     ///
@@ -140,6 +119,30 @@ final class ControlItem: ObservableObject {
         }
     }
 
+    /// A Boolean value that indicates whether the control item
+    /// is visible.
+    ///
+    /// This value corresponds to whether the item's section is
+    /// enabled.
+    var isVisible: Bool {
+        didSet {
+            var deferredBlock: (() -> Void)?
+            if !isVisible {
+                // setting the status item to invisible has the unwanted
+                // side effect of deleting the preferred position; cache
+                // and restore afterwards
+                let autosaveName = autosaveName
+                let cached = StatusItemDefaults[.preferredPosition, autosaveName]
+                deferredBlock = {
+                    StatusItemDefaults[.preferredPosition, autosaveName] = cached
+                }
+            }
+            statusItem.isVisible = isVisible
+            menuBarManager?.needsSave = true
+            deferredBlock?()
+        }
+    }
+
     /// Creates a control item with the given autosave name, position,
     /// and hiding state.
     ///
@@ -203,6 +206,7 @@ final class ControlItem: ObservableObject {
         guard let button = statusItem.button else {
             return
         }
+        button.window?.delegate = windowDelegate
         button.target = self
         button.action = #selector(performAction)
         button.sendAction(on: [.leftMouseDown, .rightMouseUp])
