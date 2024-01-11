@@ -1,13 +1,13 @@
 //
-//  HotKeyRecorder.swift
+//  HotkeyRecorder.swift
 //  Ice
 //
 
 import SwiftUI
 
-/// A view that records user-chosen key combinations for a hot key.
-struct HotKeyRecorder<Label: View>: View {
-    @StateObject private var model: HotKeyRecorderModel
+/// A view that records user-chosen key combinations for a hotkey.
+struct HotkeyRecorder<Label: View>: View {
+    @StateObject private var model: HotkeyRecorderModel
     @State private var frame: CGRect = .zero
     @State private var isInsideSegment2 = false
     @State private var timer: Timer?
@@ -15,11 +15,11 @@ struct HotKeyRecorder<Label: View>: View {
     private let label: Label
 
     private var modifierString: String {
-        model.section?.hotKey?.modifiers.stringValue ?? ""
+        model.section?.hotkey?.modifiers.stringValue ?? ""
     }
 
     private var keyString: String {
-        guard let key = model.section?.hotKey?.key else {
+        guard let key = model.section?.hotkey?.key else {
             return ""
         }
         return key.stringValue.capitalized
@@ -40,9 +40,9 @@ struct HotKeyRecorder<Label: View>: View {
             return ""
         }
         if model.isEnabled {
-            return "Click to record new hot key"
+            return "Click to record new hotkey"
         }
-        return "Click to record hot key"
+        return "Click to record hotkey"
     }
 
     private var segment2HelpString: String {
@@ -50,19 +50,19 @@ struct HotKeyRecorder<Label: View>: View {
             return "Cancel recording"
         }
         if model.isEnabled {
-            return "Delete hot key"
+            return "Delete hotkey"
         }
-        return "Click to record hot key"
+        return "Click to record hotkey"
     }
 
-    /// Creates a hot key recorder that records user-chosen key
+    /// Creates a hotkey recorder that records user-chosen key
     /// combinations for the given section.
     ///
     /// - Parameters:
-    ///   - section: The menu bar section whose hot key is recorded.
+    ///   - section: The menu bar section whose hotkey is recorded.
     ///   - label: A label for the recorder.
     init(section: MenuBarSection?, @ViewBuilder label: () -> Label) {
-        let model = HotKeyRecorderModel(section: section)
+        let model = HotkeyRecorderModel(section: section)
         self._model = StateObject(wrappedValue: model)
         self.label = label()
     }
@@ -73,7 +73,7 @@ struct HotKeyRecorder<Label: View>: View {
                 segment1
                 segment2
             }
-            .frame(width: 132, height: 21)
+            .frame(width: 130, height: 21)
             .onFrameChange(update: $frame)
             .overlay(error: model.failure)
             .buttonStyle(.custom)
@@ -114,7 +114,7 @@ struct HotKeyRecorder<Label: View>: View {
             if model.isRecording {
                 model.stopRecording()
             } else if model.isEnabled {
-                model.section?.hotKey = nil
+                model.section?.hotkey = nil
             } else {
                 model.startRecording()
             }
@@ -146,7 +146,7 @@ struct HotKeyRecorder<Label: View>: View {
                     }
                 }
             } else {
-                Text("Type Hot Key")
+                Text("Type Hotkey")
             }
         } else if model.isEnabled {
             HStack(spacing: 0) {
@@ -154,7 +154,7 @@ struct HotKeyRecorder<Label: View>: View {
                 Text(keyString)
             }
         } else {
-            Text("Record Hot Key")
+            Text("Record Hotkey")
         }
     }
 
@@ -189,7 +189,7 @@ struct HotKeyRecorder<Label: View>: View {
 }
 
 #Preview {
-    HotKeyRecorder(section: nil) {
+    HotkeyRecorder(section: nil) {
         EmptyView()
     }
     .padding()

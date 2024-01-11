@@ -5,7 +5,6 @@
 
 import AXSwift
 import Combine
-import HotKeys
 import OSLog
 import SwiftUI
 
@@ -27,7 +26,7 @@ final class MenuBarManager: ObservableObject {
 
     /// The modifier that triggers the secondary action on the
     /// menu bar's control items.
-    @Published var secondaryActionModifier: HotKey.Modifiers = .option
+    @Published var secondaryActionModifier: Hotkey.Modifiers = .option
 
     /// A Boolean value that indicates whether the hidden section
     /// should be shown when the mouse pointer hovers over an
@@ -183,7 +182,7 @@ final class MenuBarManager: ObservableObject {
                 }
             }
             if let modifierRawValue = defaults.object(forKey: Defaults.secondaryActionModifier) as? Int {
-                secondaryActionModifier = HotKey.Modifiers(rawValue: modifierRawValue)
+                secondaryActionModifier = Hotkey.Modifiers(rawValue: modifierRawValue)
             }
         } catch {
             Logger.menuBarManager.error("Error decoding value: \(error)")
@@ -427,7 +426,7 @@ final class MenuBarManager: ObservableObject {
     /// Handles changes to the ``secondaryActionModifier`` property.
     ///
     /// - Parameter modifier: The new value of the property.
-    private func handleSecondaryActionModifier(_ modifier: HotKey.Modifiers) {
+    private func handleSecondaryActionModifier(_ modifier: Hotkey.Modifiers) {
         defaults.set(modifier.rawValue, forKey: Defaults.secondaryActionModifier)
     }
 

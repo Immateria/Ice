@@ -1,33 +1,32 @@
 //
-//  HotKeyRecorderModel.swift
+//  HotkeyRecorderModel.swift
 //  Ice
 //
 
 import Cocoa
 import Combine
-import HotKeys
 
-/// Model for a hot key recorder's state.
-class HotKeyRecorderModel: ObservableObject {
+/// Model for a hotkey recorder's state.
+class HotkeyRecorderModel: ObservableObject {
     @Published private(set) var isRecording = false
     @Published private(set) var pressedModifierStrings = [String]()
     @Published var failure: RecordingFailure?
 
     let section: MenuBarSection?
 
-    private let handleFailure: (HotKeyRecorderModel, RecordingFailure) -> Void
+    private let handleFailure: (HotkeyRecorderModel, RecordingFailure) -> Void
     private var monitor: LocalEventMonitor?
 
     private var cancellables = Set<AnyCancellable>()
 
-    /// A Boolean value that indicates whether the hot key is
+    /// A Boolean value that indicates whether the hotkey is
     /// currently enabled.
     var isEnabled: Bool {
-        section?.hotKeyIsEnabled ?? false
+        section?.hotkeyIsEnabled ?? false
     }
 
-    /// Creates a model for a hot key recorder that records key
-    /// combinations for the given section's hot key.
+    /// Creates a model for a hotkey recorder that records key
+    /// combinations for the given section's hotkey.
     init(section: MenuBarSection?) {
         defer {
             configureCancellables()
@@ -66,7 +65,7 @@ class HotKeyRecorderModel: ObservableObject {
         var c = Set<AnyCancellable>()
 
         if let section {
-            section.$hotKey
+            section.$hotkey
                 .sink { [weak self] _ in
                     self?.objectWillChange.send()
                 }
@@ -76,37 +75,35 @@ class HotKeyRecorderModel: ObservableObject {
         cancellables = c
     }
 
-    /// Disables the hot key and starts monitoring for events.
+    /// Disables the hotkey and starts monitoring for events.
     func startRecording() {
         guard !isRecording else {
             return
         }
         isRecording = true
-        section?.disableHotKey()
+        section?.disableHotkey()
         monitor?.start()
         pressedModifierStrings = []
     }
 
-    /// Enables the hot key and stops monitoring for events.
+    /// Enables the hotkey and stops monitoring for events.
     func stopRecording() {
         guard isRecording else {
             return
         }
         isRecording = false
         monitor?.stop()
-        section?.enableHotKey()
+        section?.enableHotkey()
         pressedModifierStrings = []
         failure = nil
     }
 
-    /// Handles local key down events when the hot key recorder
+    /// Handles local key down events when the hotkey recorder
     /// is recording.
     private func handleKeyDown(event: NSEvent) {
-        guard let hotKey = HotKey(nsEvent: event) else {
-            return
-        }
-        if hotKey.modifiers.isEmpty {
-            if hotKey.key == .escape {
+        let hotkey = Hotkey(event: event)
+        if hotkey.modifiers.isEmpty {
+            if hotkey.key == .escape {
                 // escape was pressed with no modifiers
                 stopRecording()
             } else {
@@ -114,24 +111,24 @@ class HotKeyRecorderModel: ObservableObject {
             }
             return
         }
-        if hotKey.modifiers == .shift {
+        if hotkey.modifiers == .shift {
             handleFailure(self, .onlyShift)
             return
         }
-        if hotKey.isReservedBySystem {
-            handleFailure(self, .reserved(hotKey))
+        if hotkey.isReservedBySystem {
+            handleFailure(self, .reserved(hotkey))
             return
         }
         // if we made it this far, all checks passed; assign the
-        // new hot key and stop recording
-        section?.hotKey = hotKey
+        // new hotkey and stop recording
+        section?.hotkey = hotkey
         stopRecording()
     }
 
-    /// Handles modifier flag changes when the hot key recorder
+    /// Handles modifier flag changes when the hotkey recorder
     /// is recording.
     private func handleFlagsChanged(event: NSEvent) {
-        pressedModifierStrings = HotKey.Modifiers.canonicalOrder.compactMap {
+        pressedModifierStrings = Hotkey.Modifiers.canonicalOrder.compactMap {
             event.modifierFlags.contains($0.nsEventFlags) ? $0.stringValue : nil
         }
     }
