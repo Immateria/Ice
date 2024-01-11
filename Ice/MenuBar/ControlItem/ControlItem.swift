@@ -5,6 +5,7 @@
 
 import Cocoa
 import Combine
+import HotKeys
 import OSLog
 
 /// A status item that controls the visibility of a section in
@@ -31,7 +32,7 @@ final class ControlItem: ObservableObject {
     ///
     /// The user chooses which of these they would like to use
     /// in the app's settings.
-    static let secondaryActionModifiers: [Hotkey.Modifiers] = [.control, .option, .shift]
+    static let secondaryActionModifiers: [HotKey.Modifiers] = [.control, .option, .shift]
 
     /// Storage to temporarily associate menu bar sections with
     /// specific menu items.
@@ -390,9 +391,9 @@ final class ControlItem: ObservableObject {
             )
             item.target = self
             Self.sectionStorage[item] = section
-            if let hotkey = section.hotkey {
-                item.keyEquivalent = hotkey.key.keyEquivalent
-                item.keyEquivalentModifierMask = hotkey.modifiers.nsEventFlags
+            if let hotKey = section.hotKey {
+                item.keyEquivalent = hotKey.key.keyEquivalent
+                item.keyEquivalentModifierMask = hotKey.modifiers.nsEventFlags
             }
             menu.addItem(item)
         }

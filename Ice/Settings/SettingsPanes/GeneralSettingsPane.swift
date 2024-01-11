@@ -28,7 +28,7 @@ struct GeneralSettingsPane: View {
                 showOnHover
                 iceIconOptions
             }
-            Section("Hotkeys") {
+            Section("Hot Keys") {
                 hiddenRecorder
                 alwaysHiddenRecorder
             }
@@ -161,9 +161,9 @@ struct GeneralSettingsPane: View {
     }
 
     @ViewBuilder
-    private func hotkeyRecorder(for section: MenuBarSection) -> some View {
+    private func hotKeyRecorder(for section: MenuBarSection) -> some View {
         if section.isEnabled {
-            HotkeyRecorder(section: section) {
+            HotKeyRecorder(section: section) {
                 Text("Toggle the \"\(section.name.rawValue)\" menu bar section")
             }
         }
@@ -172,14 +172,14 @@ struct GeneralSettingsPane: View {
     @ViewBuilder
     private var hiddenRecorder: some View {
         if let section = menuBarManager.section(withName: .hidden) {
-            hotkeyRecorder(for: section)
+            hotKeyRecorder(for: section)
         }
     }
 
     @ViewBuilder
     private var alwaysHiddenRecorder: some View {
         if let section = menuBarManager.section(withName: .alwaysHidden) {
-            hotkeyRecorder(for: section)
+            hotKeyRecorder(for: section)
         }
     }
 }

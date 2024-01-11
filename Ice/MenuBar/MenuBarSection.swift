@@ -5,6 +5,7 @@
 
 import Combine
 import Foundation
+import HotKeys
 import OSLog
 
 /// A representation of a section in a menu bar.
@@ -24,17 +25,17 @@ final class MenuBarSection: ObservableObject {
         }
     }
 
-    /// The hotkey associated with the section.
-    @Published var hotkey: Hotkey? {
+    /// The hot key associated with the section.
+    @Published var hotKey: HotKey? {
         didSet {
-            if listener != nil {
-                enableHotkey()
+            if registration != nil {
+                enableHotKey()
             }
             menuBarManager?.needsSave = true
         }
     }
 
-    private var listener: Hotkey.Listener?
+    private var registration: HotKeyRegistration?
     private var cancellables = Set<AnyCancellable>()
 
     /// User-visible name that describes the section.
@@ -55,9 +56,9 @@ final class MenuBarSection: ObservableObject {
         set {
             controlItem.isVisible = newValue
             if newValue {
-                enableHotkey()
+                enableHotKey()
             } else {
-                disableHotkey()
+                disableHotKey()
             }
         }
     }
@@ -70,10 +71,10 @@ final class MenuBarSection: ObservableObject {
         }
     }
 
-    /// A Boolean value that indicates whether the section's hotkey is
+    /// A Boolean value that indicates whether the section's hot key is
     /// enabled.
-    var hotkeyIsEnabled: Bool {
-        listener != nil
+    var hotKeyIsEnabled: Bool {
+        registration != nil
     }
 
     /// The max X coordinate of the section on screen.
@@ -91,12 +92,12 @@ final class MenuBarSection: ObservableObject {
     }
 
     /// Creates a menu bar section with the given name, control item,
-    /// hotkey, and unique identifier.
-    init(name: Name, controlItem: ControlItem, hotkey: Hotkey? = nil) {
+    /// hot key, and unique identifier.
+    init(name: Name, controlItem: ControlItem, hotKey: HotKey? = nil) {
         self.name = name
         self.controlItem = controlItem
-        self.hotkey = hotkey
-        enableHotkey()
+        self.hotKey = hotKey
+        enableHotKey()
         configureCancellables()
     }
 
@@ -128,7 +129,7 @@ final class MenuBarSection: ObservableObject {
                 position: position,
                 state: state
             ),
-            hotkey: nil
+            hotKey: nil
         )
     }
 
@@ -145,17 +146,27 @@ final class MenuBarSection: ObservableObject {
         cancellables = c
     }
 
-    /// Enables the hotkey associated with the section.
-    func enableHotkey() {
-        listener = hotkey?.onKeyDown { [weak self] in
-            self?.toggle()
+    /// Enables the hot key associated with the section.
+    func enableHotKey() {
+        guard let hotKey else {
+            disableHotKey()
+            return
         }
+        registration = try? HotKeyRegistry.shared.register(
+            hotKey: hotKey,
+            eventKind: .pressed,
+            handler: { [weak self] _ in
+                self?.toggle()
+            }
+        )
     }
 
-    /// Disables the hotkey associated with the section.
-    func disableHotkey() {
-        listener?.invalidate()
-        listener = nil
+    /// Disables the hot key associated with the section.
+    func disableHotKey() {
+        if let registration {
+            try? HotKeyRegistry.shared.unregister(registration)
+        }
+        registration = nil
     }
 
     /// Shows the status items in the section.
@@ -225,7 +236,7 @@ extension MenuBarSection: Codable {
     private enum CodingKeys: String, CodingKey {
         case name
         case controlItem
-        case hotkey
+        case hotKey
     }
 
     convenience init(from decoder: Decoder) throws {
@@ -233,7 +244,7 @@ extension MenuBarSection: Codable {
         try self.init(
             name: container.decode(Name.self, forKey: .name),
             controlItem: container.decode(ControlItem.self, forKey: .controlItem),
-            hotkey: container.decodeIfPresent(Hotkey.self, forKey: .hotkey)
+            hotKey: container.decodeIfPresent(HotKey.self, forKey: .hotKey)
         )
     }
 
@@ -241,7 +252,7 @@ extension MenuBarSection: Codable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(name, forKey: .name)
         try container.encode(controlItem, forKey: .controlItem)
-        try container.encodeIfPresent(hotkey, forKey: .hotkey)
+        try container.encodeIfPresent(hotKey, forKey: .hotKey)
     }
 }
 
@@ -250,7 +261,7 @@ extension MenuBarSection: Equatable {
     static func == (lhs: MenuBarSection, rhs: MenuBarSection) -> Bool {
         lhs.name == rhs.name &&
         lhs.controlItem == rhs.controlItem &&
-        lhs.hotkey == rhs.hotkey
+        lhs.hotKey == rhs.hotKey
     }
 }
 
@@ -259,7 +270,7 @@ extension MenuBarSection: Hashable {
     func hash(into hasher: inout Hasher) {
         hasher.combine(name)
         hasher.combine(controlItem)
-        hasher.combine(hotkey)
+        hasher.combine(hotKey)
     }
 }
 

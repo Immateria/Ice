@@ -1,42 +1,41 @@
 //
-//  Hotkey+Modifiers.swift
+//  HotKey+Modifiers.swift
 //  Ice
 //
 
 import Carbon.HIToolbox
-import Cocoa
+import SwiftUI
 
-extension Hotkey {
-    /// A bit mask containing the modifier keys for a hotkey.
-    struct Modifiers: OptionSet, Codable, Hashable {
-        let rawValue: Int
+extension HotKey {
+    /// A representation of the modifier keys in a hot key.
+    public struct Modifiers: OptionSet {
+        public let rawValue: Int
 
-        init(rawValue: Int) {
+        public init(rawValue: Int) {
             self.rawValue = rawValue
         }
 
-        /// The control `(⌃)` key.
-        static let control   = Modifiers(rawValue: 1 << 0)
-        /// The option `(⌥)` key.
-        static let option    = Modifiers(rawValue: 1 << 1)
-        /// The shift `(⇧)` key.
-        static let shift     = Modifiers(rawValue: 1 << 2)
-        /// The command `(⌘)` key.
-        static let command   = Modifiers(rawValue: 1 << 3)
+        /// The Control key.
+        public static let control = Modifiers(rawValue: 1 << 0)
+        /// The Option key.
+        public static let option = Modifiers(rawValue: 1 << 1)
+        /// The Shift key.
+        public static let shift = Modifiers(rawValue: 1 << 2)
+        /// The Command key.
+        public static let command = Modifiers(rawValue: 1 << 3)
 
         /// All modifiers in the order displayed by the system, according
         /// to Apple's style guide.
-        static let canonicalOrder: [Modifiers] = [.control, .option, .shift, .command]
+        public static let canonicalOrder: [Modifiers] = [.control, .option, .shift, .command]
     }
 }
 
-// MARK: Flag Conversions
-extension Hotkey.Modifiers {
+extension HotKey.Modifiers {
 
     // MARK: Conversion Properties
 
-    /// The bit mask's string representation.
-    var stringValue: String {
+    /// The equivalent string representation of the modifiers.
+    public var stringValue: String {
         var result = ""
         if contains(.control) {
             result.append("⌃")
@@ -53,8 +52,8 @@ extension Hotkey.Modifiers {
         return result
     }
 
-    /// The bit mask's secondary string representation.
-    var label: String {
+    /// A label for the modifiers.
+    public var label: String {
         var result = [String]()
         if contains(.control) {
             result.append("Control")
@@ -71,8 +70,8 @@ extension Hotkey.Modifiers {
         return result.joined(separator: " + ")
     }
 
-    /// The bit mask's equivalent `NSEvent` modifier flags.
-    var nsEventFlags: NSEvent.ModifierFlags {
+    /// The equivalent `NSEvent` flags of the modifiers.
+    public var nsEventFlags: NSEvent.ModifierFlags {
         var result: NSEvent.ModifierFlags = []
         if contains(.control) {
             result.insert(.control)
@@ -89,8 +88,8 @@ extension Hotkey.Modifiers {
         return result
     }
 
-    /// The bit mask's equivalent `CoreGraphics` event flags.
-    var cgEventFlags: CGEventFlags {
+    /// The equivalent `CoreGraphics` event flags of the modifiers.
+    public var cgEventFlags: CGEventFlags {
         var result: CGEventFlags = []
         if contains(.control) {
             result.insert(.maskControl)
@@ -107,8 +106,8 @@ extension Hotkey.Modifiers {
         return result
     }
 
-    /// The bit mask's equivalent `Carbon` event flags.
-    var carbonFlags: Int {
+    /// The equivalent `Carbon` event flags of the modifiers.
+    public var carbonFlags: Int {
         var result = 0
         if contains(.control) {
             result |= controlKey
@@ -127,8 +126,25 @@ extension Hotkey.Modifiers {
 
     // MARK: Conversion Initializers
 
-    /// Creates a bit mask with the given `NSEvent` modifier flags.
-    init(nsEventFlags: NSEvent.ModifierFlags) {
+    /// Creates modifiers with the given string representation.
+    public init(stringValue: String) {
+        self.init()
+        if stringValue.contains("⌃") {
+            insert(.control)
+        }
+        if stringValue.contains("⌥") {
+            insert(.option)
+        }
+        if stringValue.contains("⇧") {
+            insert(.shift)
+        }
+        if stringValue.contains("⌘") {
+            insert(.command)
+        }
+    }
+
+    /// Creates modifiers with the given `NSEvent` flags.
+    public init(nsEventFlags: NSEvent.ModifierFlags) {
         self.init()
         if nsEventFlags.contains(.control) {
             insert(.control)
@@ -144,8 +160,8 @@ extension Hotkey.Modifiers {
         }
     }
 
-    /// Creates a bit mask with the given `CoreGraphics` event flags.
-    init(cgEventFlags: CGEventFlags) {
+    /// Creates modifiers with the given `CoreGraphics` event flags.
+    public init(cgEventFlags: CGEventFlags) {
         self.init()
         if cgEventFlags.contains(.maskControl) {
             insert(.control)
@@ -161,8 +177,8 @@ extension Hotkey.Modifiers {
         }
     }
 
-    /// Creates a bit mask with the given `Carbon` event flags.
-    init(carbonFlags: Int) {
+    /// Creates modifiers with the given `Carbon` event flags.
+    public init(carbonFlags: Int) {
         self.init()
         if carbonFlags & controlKey == controlKey {
             insert(.control)
@@ -178,3 +194,12 @@ extension Hotkey.Modifiers {
         }
     }
 }
+
+// MARK: Modifiers: Codable
+extension HotKey.Modifiers: Codable { }
+
+// MARK: Modifiers: Equatable
+extension HotKey.Modifiers: Equatable { }
+
+// MARK: Modifiers: Hashable
+extension HotKey.Modifiers: Hashable { }
