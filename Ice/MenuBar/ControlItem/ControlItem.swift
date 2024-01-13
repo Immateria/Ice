@@ -26,6 +26,9 @@ final class ControlItem: ObservableObject {
         static let expanded: CGFloat = 10_000
     }
 
+    /// A notification that the control item's size changed.
+    static let didResizeNotification = Notification.Name("ControlItemDidResizeNotification")
+
     /// Valid modifiers that can be used to trigger the control
     /// item's secondary action.
     ///
@@ -41,7 +44,7 @@ final class ControlItem: ObservableObject {
     private let statusItem: NSStatusItem
 
     /// The control item's window delegate.
-    private let windowDelegate = ControlItemWindowDelegate()
+    private lazy var windowDelegate = ControlItemWindowDelegate(controlItem: self)
 
     /// The position of the control item in the menu bar.
     @Published private(set) var position: CGFloat?
@@ -470,6 +473,26 @@ extension ControlItem: Hashable {
         hasher.combine(autosaveName)
         hasher.combine(position)
         hasher.combine(state)
+    }
+}
+
+// MARK: - ControlItemWindowDelegate
+
+private class ControlItemWindowDelegate: NSObject, NSWindowDelegate {
+    private(set) weak var controlItem: ControlItem?
+
+    init(controlItem: ControlItem) {
+        self.controlItem = controlItem
+    }
+
+    func windowDidResize(_ notification: Notification) {
+        NotificationCenter.default.post(
+            Notification(
+                name: ControlItem.didResizeNotification,
+                object: controlItem,
+                userInfo: notification.userInfo
+            )
+        )
     }
 }
 

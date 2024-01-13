@@ -4,6 +4,7 @@
 //
 
 import Cocoa
+import Combine
 import ScreenCaptureKit
 
 /// A Cocoa view that manages the menu bar layout interface.
@@ -100,39 +101,93 @@ class LayoutBarCocoaView: NSView {
     override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
         guard
             let sourceView = sender.draggingSource as? LayoutBarItemView,
-            let sourceIndex = container.index(of: sourceView),
             sender.draggingSourceOperationMask == .move
         else {
             return false
         }
-        Task {
-            do {
-                let content = try await SCShareableContent.current
-                if
-                    let destinationView = container.arrangedView(atIndex: sourceIndex - 1),
-                    let destinationWindow = content.windows.first(where: { window in
-                        window.windowID == destinationView.item.window.windowID
-                    })
-                {
-                    try await container.menuBarManager.itemManager.move(
-                        sourceView.item,
-                        toXPosition: destinationWindow.frame.midX + 1
-                    )
-                } else if
-                    let destinationView = container.arrangedView(atIndex: sourceIndex + 1),
-                    let destinationWindow = content.windows.first(where: { window in
-                        window.windowID == destinationView.item.window.windowID
-                    })
-                {
-                    try await container.menuBarManager.itemManager.move(
-                        sourceView.item,
-                        toXPosition: destinationWindow.frame.midX - 1
-                    )
-                }
-            } catch {
-                NSAlert(error: error).runModal()
-            }
+        return moveItem(for: sourceView)
+    }
+
+    /// Moves the item belonging to the given source view.
+    private func moveItem(for sourceView: LayoutBarItemView) -> Bool {
+        guard let sourceIndex = container.index(of: sourceView) else {
+            return false
         }
-        return true
+
+        // wait for the control item to resize
+        let semaphore = DispatchSemaphore(value: 0)
+
+        let box = BoxObject<AnyCancellable?>()
+        box.base = NotificationCenter.default.publisher(for: ControlItem.didResizeNotification)
+            .filter { [weak self] notification in
+                guard
+                    let self,
+                    let controlItem = notification.object as? ControlItem
+                else {
+                    return false
+                }
+                switch section.name {
+                case .visible:
+                    guard let section = container.menuBarManager.section(withName: .hidden) else {
+                        return false
+                    }
+                    return controlItem === section.controlItem
+                case .hidden:
+                    guard let section = container.menuBarManager.section(withName: .alwaysHidden) else {
+                        return false
+                    }
+                    return controlItem === section.controlItem
+                case .alwaysHidden:
+                    return false
+                }
+            }
+            .sink { [weak box, weak semaphore] _ in
+                box?.base?.cancel()
+                box?.base = nil
+                semaphore?.signal()
+            }
+
+        container.menuBarManager.section(withName: .hidden)?.show()
+        container.menuBarManager.section(withName: .alwaysHidden)?.show()
+
+        let result = semaphore.wait(timeout: .now() + 0.5)
+
+        switch result {
+        case .success:
+            Task {
+                do {
+                    try await Task.sleep(for: .seconds(0.001))
+                    let content = try await SCShareableContent.current
+                    if
+                        let destinationView = container.arrangedView(atIndex: sourceIndex - 1),
+                        let destinationWindow = content.windows.first(where: { window in
+                            window.windowID == destinationView.item.window.windowID
+                        })
+                    {
+                        try await container.menuBarManager.itemManager.move(
+                            sourceView.item,
+                            toXPosition: destinationWindow.frame.midX + 1
+                        )
+                    } else if
+                        let destinationView = container.arrangedView(atIndex: sourceIndex + 1),
+                        let destinationWindow = content.windows.first(where: { window in
+                            window.windowID == destinationView.item.window.windowID
+                        })
+                    {
+                        try await container.menuBarManager.itemManager.move(
+                            sourceView.item,
+                            toXPosition: destinationWindow.frame.midX - 1
+                        )
+                    }
+                } catch {
+                    NSAlert(error: error).runModal()
+                }
+                container.menuBarManager.section(withName: .hidden)?.hide()
+                container.menuBarManager.section(withName: .alwaysHidden)?.hide()
+            }
+            return true
+        case .timedOut:
+            return false
+        }
     }
 }
